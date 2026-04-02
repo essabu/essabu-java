@@ -4,6 +4,8 @@ The HR module provides comprehensive human resource management including employe
 
 ## Client Access
 
+Initialize the HR client by calling `hr()` on your Essabu instance. The HR client is lazily created on first access and reused for subsequent calls. You must have a valid API key with HR module permissions, otherwise all calls will return a `ForbiddenException`.
+
 ```java
 EssabuClient essabu = new EssabuClient("your-api-key");
 HrClient hr = essabu.hr();
@@ -47,6 +49,8 @@ HrClient hr = essabu.hr();
 | `delete(UUID id) -> void` | `DELETE /api/hr/employees/{id}` | Delete an employee |
 | `getLeaveBalance(UUID employeeId) -> Map` | `GET /api/hr/employees/{id}/leave-balance` | Get leave balance |
 
+List employees for a specific company by providing the company UUID and pagination parameters. The create method requires at minimum `firstName`, `lastName`, and `email`. Returns the created employee with generated fields including UUID, employee number, and timestamps. Throws `ValidationException` if the email already exists within the tenant, or `NotFoundException` if the company ID is invalid.
+
 ```java
 // List employees
 PageResponse<Map> employees = hr.employees().list(companyId, new PageRequest(1, 20));
@@ -78,6 +82,8 @@ Map employee = hr.employees().create(req);
 | `approve(UUID id) -> Map` | `POST /api/hr/leave-requests/{id}/approve` | Approve a leave request |
 | `reject(UUID id, Map request) -> Map` | `POST /api/hr/leave-requests/{id}/reject` | Reject a leave request |
 
+Approve a pending leave request by its UUID. The request must be in a pending state; approving an already-approved or rejected request throws a `ConflictException`. The caller must have the appropriate approval permission. Returns the updated leave request with the new status and approval timestamp.
+
 ```java
 // Approve a leave request
 Map approved = hr.leaves().approve(leaveRequestId);
@@ -94,6 +100,8 @@ Map approved = hr.leaves().approve(leaveRequestId);
 | `listPayslips(UUID payrollRunId, PageRequest) -> PageResponse<Map>` | `GET /api/hr/payslips?payrollRunId=` | List payslips |
 | `getPayslipById(UUID id) -> Map` | `GET /api/hr/payslips/{id}` | Get a payslip |
 | `downloadPayslip(UUID id) -> byte[]` | `GET /api/hr/payslips/{id}/download` | Download payslip PDF |
+
+Create a payroll run for a specific month and department, then approve it to generate payslips. The `createRun` method requires `month` (in YYYY-MM format) and optionally a `departmentId` to scope the run. After approval, individual payslips can be downloaded as PDF byte arrays. Throws `ConflictException` if a payroll run already exists for the same month and department.
 
 ```java
 // Run payroll and download payslip

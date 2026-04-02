@@ -4,6 +4,8 @@ The Accounting module covers chart of accounts, invoicing, payments, wallets, jo
 
 ## Client Access
 
+Initialize the Accounting client by calling `accounting()` on your Essabu instance. The client is lazily created on first access and cached for subsequent calls. Requires an API key with accounting module permissions; otherwise all operations will throw `ForbiddenException`.
+
 ```java
 EssabuClient essabu = new EssabuClient("your-api-key");
 AccountingClient accounting = essabu.accounting();
@@ -45,6 +47,8 @@ AccountingClient accounting = essabu.accounting();
 | `listBalances(PageRequest) -> PageResponse<Map>` | `GET /api/accounting/balances` | List all balances |
 | `getBalance(UUID accountId) -> Map` | `GET /api/accounting/balances/{accountId}` | Get account balance |
 
+Create a new account in the chart of accounts by providing at minimum a unique `code`, a `name`, and an account `type` (e.g., "revenue", "expense", "asset", "liability"). The `getBalance` method returns the current balance for a specific account. Throws `ConflictException` if an account with the same code already exists, or `ValidationException` if the account type is invalid.
+
 ```java
 Map account = accounting.accounts().create(Map.of(
     "code", "4100", "name", "Sales Revenue", "type", "revenue"
@@ -71,6 +75,8 @@ Map balance = accounting.accounts().getBalance(accountId);
 | `updateBranding(UUID, Map) -> Map` | `PUT /api/accounting/invoice-branding/{id}` | Update branding |
 | `listLocales(PageRequest) -> PageResponse<Map>` | `GET /api/accounting/invoice-locales` | List locales |
 | `createLocale(Map) -> Map` | `POST /api/accounting/invoice-locales` | Create locale |
+
+Demonstrates the full invoicing lifecycle: create a draft invoice with a customer ID and line items, finalize it to lock the invoice number and amounts, send it by email, and download the PDF. The `create` method requires a `customerId` and at least one item with a `description` and `amount`. Finalized invoices cannot be edited; use credit notes for adjustments. Throws `ConflictException` if the invoice is already finalized.
 
 ```java
 // Full invoicing workflow
@@ -127,6 +133,8 @@ byte[] pdf = accounting.invoices().downloadPdf(invoiceId);
 | `createEntry(Map) -> Map` | `POST /api/accounting/journal-entries` | Create entry |
 | `updateEntry(UUID, Map) -> Map` | `PUT /api/accounting/journal-entries/{id}` | Update entry |
 | `deleteEntry(UUID) -> void` | `DELETE /api/accounting/journal-entries/{id}` | Delete entry |
+
+Create a double-entry journal entry by specifying the journal ID, date, and a list of debit/credit lines. Each line requires an `accountId` and either a `debit` or `credit` amount. The total debits must equal total credits; otherwise a `ValidationException` is thrown. Returns the created entry with its generated UUID and line details.
 
 ```java
 // Create a journal entry

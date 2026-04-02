@@ -4,6 +4,8 @@ The Asset module provides asset management including fixed assets, vehicles, mai
 
 ## Client Access
 
+Initialize the Asset client by calling `asset()` on your Essabu instance. The client is lazily created on first access and cached for subsequent calls. Requires an API key with asset module permissions; otherwise all operations will throw `ForbiddenException`.
+
 ```java
 EssabuClient essabu = new EssabuClient("your-api-key");
 AssetClient asset = essabu.asset();
@@ -30,6 +32,8 @@ AssetClient asset = essabu.asset();
 | `update(UUID, Map) -> Map` | `PUT /api/asset/assets/{id}` | Update asset |
 | `delete(UUID) -> void` | `DELETE /api/asset/assets/{id}` | Delete asset |
 
+Register a new fixed asset by providing its `name`, `category`, `purchaseDate`, `purchasePrice`, `depreciationMethod` (e.g., "straight-line" or "declining-balance"), and `usefulLifeMonths`. The system automatically calculates depreciation schedules based on the chosen method. Returns the created asset with its generated UUID and computed depreciation values. Throws `ValidationException` if the depreciation method is unsupported or the useful life is zero.
+
 ```java
 Map assetItem = asset.assets().create(Map.of(
     "name", "Office Laptop",
@@ -50,6 +54,8 @@ Map assetItem = asset.assets().create(Map.of(
 | `create(Map) -> Map` | `POST /api/asset/vehicles` | Create vehicle |
 | `update(UUID, Map) -> Map` | `PUT /api/asset/vehicles/{id}` | Update vehicle |
 | `delete(UUID) -> void` | `DELETE /api/asset/vehicles/{id}` | Delete vehicle |
+
+Register a new vehicle in the fleet by providing `make`, `model`, `year`, `licensePlate`, and initial `mileage`. The license plate must be unique across the tenant. Returns the created vehicle with its generated UUID and timestamps. Throws `ConflictException` if a vehicle with the same license plate already exists.
 
 ```java
 Map vehicle = asset.vehicles().create(Map.of(
@@ -72,6 +78,8 @@ Map vehicle = asset.vehicles().create(Map.of(
 | `createSchedule(Map) -> Map` | `POST /api/asset/maintenance-schedules` | Create schedule |
 | `updateSchedule(UUID, Map) -> Map` | `PUT /api/asset/maintenance-schedules/{id}` | Update schedule |
 | `deleteSchedule(UUID) -> void` | `DELETE /api/asset/maintenance-schedules/{id}` | Delete schedule |
+
+Log a completed maintenance event by providing the `assetId`, maintenance `type` (e.g., "oil-change", "tire-rotation"), `date`, `cost`, and optional `notes`. You can also create recurring maintenance schedules with an `intervalDays` and `nextDueDate` to receive automatic reminders. Returns the created log or schedule with its generated UUID. Throws `NotFoundException` if the referenced asset does not exist.
 
 ```java
 // Log a maintenance event
@@ -101,6 +109,8 @@ Map schedule = asset.maintenance().createSchedule(Map.of(
 | `createTripLog(Map) -> Map` | `POST /api/asset/trip-logs` | Create trip log |
 | `updateTripLog(UUID, Map) -> Map` | `PUT /api/asset/trip-logs/{id}` | Update trip log |
 | `deleteTripLog(UUID) -> void` | `DELETE /api/asset/trip-logs/{id}` | Delete trip log |
+
+Record a fuel purchase by providing the `vehicleId`, `liters` purchased, `costPerLiter`, current `odometer` reading, and `date`. Trip logs track vehicle usage with `startOdometer`, `endOdometer`, `driverId`, and trip start/end timestamps in ISO 8601 format. Returns the created log with its UUID. Throws `ValidationException` if the end odometer is less than the start odometer, or if the odometer reading is less than the vehicle's last recorded value.
 
 ```java
 // Log a fuel purchase

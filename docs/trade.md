@@ -4,6 +4,8 @@ The Trade module covers CRM (customers, contacts, opportunities, activities, cam
 
 ## Client Access
 
+Initialize the Trade client by calling `trade()` on your Essabu instance. The client is lazily created on first access and cached for subsequent calls. Requires an API key with trade module permissions; otherwise all operations will throw `ForbiddenException`.
+
 ```java
 EssabuClient essabu = new EssabuClient("your-api-key");
 TradeClient trade = essabu.trade();
@@ -45,6 +47,8 @@ TradeClient trade = essabu.trade();
 | `createGroup(Map) -> Map` | `POST /api/trade/customer-groups` | Create group |
 | `updateGroup(UUID, Map) -> Map` | `PUT /api/trade/customer-groups/{id}` | Update group |
 | `deleteGroup(UUID) -> void` | `DELETE /api/trade/customer-groups/{id}` | Delete group |
+
+Create a new customer record with at minimum a `name` and `email`. You can optionally provide a `phone`, `address`, and `groupId` to assign the customer to a group. Returns the created customer with a generated UUID and timestamps. Throws `ConflictException` if a customer with the same email already exists in the tenant.
 
 ```java
 Map customer = trade.customers().create(Map.of(

@@ -4,6 +4,8 @@ The E-Invoice module provides electronic invoicing capabilities including invoic
 
 ## Client Access
 
+Initialize the E-Invoice client by calling `einvoice()` on your Essabu instance. The client is lazily created on first access and cached for subsequent calls. Requires an API key with e-invoice module permissions. Note that the verification API is public and does not require authentication.
+
 ```java
 EssabuClient essabu = new EssabuClient("your-api-key");
 EInvoiceClient einvoice = essabu.einvoice();
@@ -30,6 +32,8 @@ EInvoiceClient einvoice = essabu.einvoice();
 | `downloadPdf(UUID) -> byte[]` | `GET /api/einvoice/invoices/{id}/pdf` | Download PDF |
 | `downloadXml(UUID) -> byte[]` | `GET /api/einvoice/invoices/{id}/xml` | Download XML |
 
+Submit an e-invoice to the tax authority by providing an existing `invoiceId` (from the Accounting module), the buyer's tax identification number (`buyerTin`), and the buyer's name. After submission, poll `getSubmissionStatus` to track acceptance by the authority. PDF and XML formats can be downloaded once the invoice is accepted. Throws `ConflictException` if the invoice has already been submitted or cancelled, and `BadRequestException` if required tax fields are missing.
+
 ```java
 // Submit an e-invoice
 Map einv = einvoice.invoices().submit(Map.of(
@@ -52,6 +56,8 @@ byte[] xml = einvoice.invoices().downloadXml(einvId);
 |--------|----------|-------------|
 | `verify(String verificationCode) -> Map` | `GET /api/public/einvoice/verify?code=` | Verify by code |
 | `verifyByQrCode(String qrData) -> Map` | `POST /api/public/einvoice/verify-qr` | Verify by QR data |
+
+Verify an e-invoice using either its unique verification code or QR code data. These endpoints are public and do not require authentication, making them suitable for buyer-side verification workflows. The `verify` method accepts the alphanumeric verification code printed on the invoice. The `verifyByQrCode` method accepts the raw data from a scanned QR code. Both return the invoice details and validity status.
 
 ```java
 // Verify an e-invoice by code (public, no auth required)
