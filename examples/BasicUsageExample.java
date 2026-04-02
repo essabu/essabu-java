@@ -1,3 +1,26 @@
+/*
+ * BasicUsageExample.java - Essabu Java SDK Basic Usage
+ *
+ * This example demonstrates how to initialize the Essabu SDK client in a standalone
+ * Java application (without Spring Boot) and perform common operations across multiple
+ * modules. It covers:
+ *
+ * - Building and configuring the Essabu client with an API key and tenant ID
+ * - Listing employees from the HR module with pagination
+ * - Creating an invoice in the Accounting module
+ * - Listing customers from the Trade module
+ * - Handling errors using the SDK's typed exception hierarchy
+ *
+ * Prerequisites:
+ * - A valid Essabu API key (obtain from Dashboard > Settings > API Keys)
+ * - A valid tenant UUID
+ * - At least one company created in the HR module for the employee listing
+ *
+ * The example catches NotFoundException for a non-existent employee UUID to demonstrate
+ * how the SDK maps HTTP 404 responses to typed exceptions. The catch-all EssabuApiException
+ * handles any other unexpected API errors.
+ */
+
 import com.essabu.Essabu;
 import com.essabu.common.exception.EssabuApiException;
 import com.essabu.common.exception.NotFoundException;

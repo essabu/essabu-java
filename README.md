@@ -54,6 +54,8 @@ every error case with precision.
 
 ### Maven
 
+Add the Essabu Java SDK dependency to your Maven `pom.xml`. This single artifact includes all modules and their transitive dependencies are resolved automatically by Maven.
+
 ```xml
 <dependency>
     <groupId>com.essabu</groupId>
@@ -64,17 +66,23 @@ every error case with precision.
 
 ### Gradle (Groovy)
 
+Add the dependency to your `build.gradle` file. The SDK requires Java 21 or later, so ensure your `sourceCompatibility` is set accordingly.
+
 ```groovy
 implementation 'com.essabu:essabu-java:1.0.0-SNAPSHOT'
 ```
 
 ### Gradle (Kotlin DSL)
 
+Add the dependency to your `build.gradle.kts` file. This is equivalent to the Groovy syntax above but uses the Kotlin DSL format.
+
 ```kotlin
 implementation("com.essabu:essabu-java:1.0.0-SNAPSHOT")
 ```
 
 ## Quick Start
+
+This example demonstrates initializing the SDK client and performing basic operations across all modules. You need your API key and tenant UUID, both available from the Essabu dashboard. Each module is accessed through a dedicated method on the client, and all methods return structured `Map` responses or `PageResponse` wrappers for paginated results.
 
 ```java
 import com.essabu.Essabu;
@@ -134,6 +142,8 @@ var vehicle = essabu.asset().vehicles().create(Map.of(
 
 Add the SDK dependency and set properties in `application.yml`:
 
+The SDK provides Spring Boot auto-configuration that creates and registers an `Essabu` bean automatically. Set your API key and tenant ID in `application.yml` or `application.properties`. All timeout, retry, and URL settings have sensible defaults and are optional. The bean is a singleton and thread-safe.
+
 ```yaml
 essabu:
   api-key: ess_live_xxxxxxxxxxxx
@@ -146,6 +156,8 @@ essabu:
 ```
 
 Then inject the bean:
+
+Inject the auto-configured `Essabu` bean into any Spring-managed component via constructor injection. The bean is ready to use immediately -- no manual initialization required. All module clients are lazily created on first access through their respective accessor methods.
 
 ```java
 @Service
@@ -178,6 +190,8 @@ public class MyService {
 | `essabu.retry-delay` | `Duration` | `500ms` | Initial retry delay (doubles each retry) |
 
 For standalone (non-Spring) usage, configure via the builder:
+
+Configure the Essabu client using the fluent builder for standalone Java applications (outside Spring Boot). All parameters except `apiKey` and `tenantId` are optional and default to the values shown in the configuration reference table above. The `retryDelay` doubles with each retry attempt (exponential backoff). Throws `IllegalArgumentException` if the API key or tenant ID is null or blank.
 
 ```java
 Essabu essabu = Essabu.builder()
@@ -323,6 +337,8 @@ Plus: Payouts, Settlements, Payment Accounts, SDK Keys, Reports.
 
 Use `PageRequest` and `PageResponse` for all list endpoints:
 
+Build a `PageRequest` with a zero-based page index, page size (maximum 100), and an optional sort directive in "field,direction" format. The returned `PageResponse` wraps the result list along with metadata including total elements, total pages, and a `hasNext()` helper for iteration. Throws `BadRequestException` if the page size exceeds the maximum or the sort field is invalid.
+
 ```java
 import com.essabu.common.model.PageRequest;
 import com.essabu.common.model.PageResponse;
@@ -342,6 +358,8 @@ boolean hasMore = result.hasNext();
 
 Iterate all pages:
 
+Loop through all pages of a paginated result set by incrementing the page index until `hasNext()` returns false. This pattern is useful for batch processing or data synchronization. Be mindful of rate limits when iterating large datasets -- consider adding a delay between requests if you receive `RateLimitException`.
+
 ```java
 int page = 0;
 PageResponse<Map> result;
@@ -355,6 +373,8 @@ do {
 ## Error Handling
 
 The SDK maps HTTP errors to a specific exception hierarchy:
+
+The SDK translates every non-2xx HTTP response into a typed exception. Catch specific exceptions for fine-grained handling, or catch the base `EssabuApiException` as a fallback. Each exception provides the HTTP status code, response body, and a unique request ID for debugging with Essabu support. The exceptions are ordered from most specific to least specific in the catch chain below.
 
 ```java
 import com.essabu.common.exception.*;
@@ -408,6 +428,8 @@ The SDK automatically retries **429** (rate limit) and **5xx** (server error) re
 ## Webhook Handling
 
 Process incoming Essabu webhook events:
+
+Handle webhook events sent by Essabu to your application endpoint. First, verify the signature using the `X-Essabu-Signature` header and your webhook secret to ensure the payload has not been tampered with. Then parse the event to extract the `type` (e.g., "invoice.paid", "employee.created") and `data` payload. Always return HTTP 200 to acknowledge receipt; Essabu will retry unacknowledged webhooks up to 5 times with exponential backoff.
 
 ```java
 @PostMapping("/webhooks/essabu")

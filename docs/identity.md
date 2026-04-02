@@ -4,6 +4,8 @@ The Identity module handles authentication, user management, roles and permissio
 
 ## Client Access
 
+Initialize the Identity client by calling `identity()` on your Essabu instance. The client is lazily created on first access and cached for subsequent calls. This module manages authentication flows and access control, so it is typically the first module you interact with when setting up a new integration.
+
 ```java
 EssabuClient essabu = new EssabuClient("your-api-key");
 IdentityClient identity = essabu.identity();
@@ -44,6 +46,8 @@ IdentityClient identity = essabu.identity();
 | `generateRecoveryCodes() -> Map` | `POST /api/identity/auth/2fa/recovery-codes` | Generate recovery codes |
 | `get2FAStatus() -> Map` | `GET /api/identity/auth/2fa/status` | Get 2FA status |
 
+Authenticate a user with their email and password to receive an access token and refresh token pair. The `enable2FA` method returns a QR code that should be scanned with an authenticator app, followed by a call to `verify2FA` with the generated code. Throws `UnauthorizedException` if the credentials are invalid, or `RateLimitException` after too many failed login attempts.
+
 ```java
 // Login
 Map tokens = identity.auth().login(Map.of("email", "user@example.com", "password", "secret"));
@@ -62,6 +66,8 @@ identity.auth().verify2FA(Map.of("code", "123456"));
 | `create(Map) -> Map` | `POST /api/identity/users` | Create user |
 | `update(UUID, Map) -> Map` | `PUT /api/identity/users/{id}` | Update user |
 | `delete(UUID) -> void` | `DELETE /api/identity/users/{id}` | Delete user |
+
+Create a new user within the current tenant. Requires `email`, `firstName`, `lastName`, and a `roleId` to assign the user's permissions. Returns the created user with their generated UUID and timestamps. Throws `ConflictException` if a user with the same email already exists in the tenant.
 
 ```java
 Map user = identity.users().create(Map.of(
@@ -131,6 +137,8 @@ Map user = identity.users().create(Map.of(
 | `getMyProfile() -> Map` | `GET /api/identity/profiles/me` | Get current user profile |
 | `updateMyProfile(Map) -> Map` | `PUT /api/identity/profiles/me` | Update current user profile |
 
+Retrieve or update the profile of the currently authenticated user. The `getMyProfile` method returns the user's full profile including name, email, avatar URL, and preferences. The `updateMyProfile` method accepts a partial update -- only the fields you include will be changed. No UUID is needed since the profile is resolved from the authentication token.
+
 ```java
 Map profile = identity.profiles().getMyProfile();
 identity.profiles().updateMyProfile(Map.of("firstName", "Updated Name"));
@@ -152,6 +160,8 @@ identity.profiles().updateMyProfile(Map.of("firstName", "Updated Name"));
 | `getById(UUID) -> Map` | `GET /api/identity/api-keys/{id}` | Get API key |
 | `create(Map) -> Map` | `POST /api/identity/api-keys` | Create API key |
 | `revoke(UUID) -> void` | `DELETE /api/identity/api-keys/{id}` | Revoke API key |
+
+Create a new API key with a descriptive name and a list of permission scopes. The full key value is only returned once at creation time and cannot be retrieved later. Store it securely. Revoking an API key immediately invalidates it and all requests using that key will receive `UnauthorizedException`.
 
 ```java
 Map apiKey = identity.apiKeys().create(Map.of("name", "CI/CD Key", "scopes", List.of("read", "write")));

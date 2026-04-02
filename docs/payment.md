@@ -4,6 +4,8 @@ The Payment module handles payment processing (intents, transactions, refunds, p
 
 ## Client Access
 
+Initialize the Payment client by calling `payment()` on your Essabu instance. The client is lazily created on first access and cached for subsequent calls. Requires an API key with payment module permissions; otherwise all operations will throw `ForbiddenException`.
+
 ```java
 EssabuClient essabu = new EssabuClient("your-api-key");
 PaymentClient payment = essabu.payment();
@@ -35,6 +37,8 @@ PaymentClient payment = essabu.payment();
 | `confirm(UUID) -> Map` | `POST /api/payment/intents/{id}/confirm` | Confirm intent |
 | `cancel(UUID) -> Map` | `POST /api/payment/intents/{id}/cancel` | Cancel intent |
 
+Create a payment intent to initiate a payment flow, then confirm it to execute the charge. Requires `amount` (in the smallest currency unit, e.g., cents), `currency` (ISO 4217 code), and a `customerId`. The intent remains in a pending state until confirmed or cancelled. Throws `ConflictException` if the intent has already been confirmed or cancelled.
+
 ```java
 // Create and confirm a payment
 Map intent = payment.intents().create(Map.of(
@@ -57,6 +61,8 @@ payment.intents().confirm(intentId);
 | `list(PageRequest) -> PageResponse<Map>` | `GET /api/payment/refunds` | List refunds |
 | `getById(UUID) -> Map` | `GET /api/payment/refunds/{id}` | Get refund |
 | `create(Map) -> Map` | `POST /api/payment/refunds` | Create refund |
+
+Issue a full or partial refund against a completed transaction. Requires the `transactionId`, `amount` to refund (must not exceed the original transaction amount), and an optional `reason`. Returns the created refund with its status and processing details. Throws `ValidationException` if the refund amount exceeds the remaining refundable amount.
 
 ```java
 Map refund = payment.refunds().create(Map.of(
@@ -88,6 +94,8 @@ Map refund = payment.refunds().create(Map.of(
 | `getUsageSummary(UUID subscriptionId) -> Map` | `GET /api/payment/usage/summary?subscriptionId=` | Usage summary |
 | `listInvoices(PageRequest) -> PageResponse<Map>` | `GET /api/payment/invoices` | List SaaS invoices |
 | `getInvoiceById(UUID) -> Map` | `GET /api/payment/invoices/{id}` | Get SaaS invoice |
+
+Create a subscription by linking a customer to a pricing plan. The `reportUsage` method records metered usage events with a `subscriptionId`, `quantity`, and ISO 8601 `timestamp` for usage-based billing. Cancelling a subscription takes effect at the end of the current billing cycle. Throws `ConflictException` if the subscription is already cancelled.
 
 ```java
 // Create a subscription and report usage
