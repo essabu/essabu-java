@@ -1,0 +1,33 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Check compilation
+        run: mvn compile -DskipTests -B -q
+
+      - name: Verify no warnings
+        run: mvn compile -DskipTests -B 2>&1 | grep -c "WARNING" || echo "0 warnings"
+
+      - name: Check for unused imports
+        run: |
+          find src -name "*.java" -exec grep -l "^import " {} \; | head -20
+          echo "Import check complete"

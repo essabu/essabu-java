@@ -1,0 +1,32 @@
+name: Compatibility Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Java 21 Build & Verify
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Compile
+        run: mvn clean compile -DskipTests -B -q
+
+      - name: Test compile
+        run: mvn test-compile -DskipTests -B -q
+
+      - name: Package
+        run: mvn package -DskipTests -B -Dmaven.javadoc.failOnError=false -q

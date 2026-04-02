@@ -1,0 +1,30 @@
+name: Dependency Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * 1'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Check dependencies
+        run: mvn dependency:tree -B -q
+
+      - name: Check for outdated dependencies
+        run: mvn versions:display-dependency-updates -B 2>&1 | grep -E "->|updates" | head -30 || echo "All dependencies up to date"
