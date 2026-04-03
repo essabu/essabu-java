@@ -18,6 +18,10 @@ import org.springframework.context.annotation.Bean;
  *   api-key: your-api-key
  *   tenant-id: your-tenant-id
  *   base-url: https://api.essabu.com
+ *   connect-timeout: 30s
+ *   read-timeout: 30s
+ *   max-retries: 3
+ *   retry-delay: 500ms
  * </pre>
  */
 @AutoConfiguration
@@ -33,6 +37,10 @@ public class EssabuAutoConfiguration {
                 .apiKey(properties.getApiKey())
                 .tenantId(properties.getTenantId())
                 .baseUrl(properties.getBaseUrl())
+                .connectTimeout(properties.getConnectTimeout())
+                .readTimeout(properties.getReadTimeout())
+                .maxRetries(properties.getMaxRetries())
+                .retryDelay(properties.getRetryDelay())
                 .build();
     }
 }
