@@ -63,7 +63,7 @@ public final class RetryHandler {
                 continue;
             }
 
-            // Non-retryable error, throw immediately
+            // Non-retryable error, return for caller to handle
             return response;
         }
     }

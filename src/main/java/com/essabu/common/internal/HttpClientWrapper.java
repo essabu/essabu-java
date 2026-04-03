@@ -1,5 +1,6 @@
 package com.essabu.common.internal;
 
+import com.essabu.EssabuConfig;
 import com.essabu.common.exception.*;
 import com.fasterxml.jackson.databind.JavaType;
 
@@ -8,6 +9,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Optional;
 
 /**
  * Low-level HTTP client wrapper built on {@link java.net.http.HttpClient}.
@@ -16,18 +18,38 @@ import java.time.Duration;
  */
 public final class HttpClientWrapper {
 
+    private static final String REQUEST_ID_HEADER = "X-Request-Id";
+
     private final HttpClient httpClient;
     private final AuthInterceptor auth;
     private final RetryHandler retryHandler;
     private final String baseUrl;
+    private final Duration readTimeout;
+
+    public HttpClientWrapper(EssabuConfig config) {
+        String url = config.getBaseUrl();
+        this.baseUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        this.auth = new AuthInterceptor(config.getApiKey(), config.getTenantId());
+        this.retryHandler = new RetryHandler(config.getMaxRetries(), config.getRetryDelay());
+        this.readTimeout = config.getReadTimeout();
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(config.getConnectTimeout())
+                .build();
+    }
 
     public HttpClientWrapper(String baseUrl, String apiKey, String tenantId) {
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        this.auth = new AuthInterceptor(apiKey, tenantId);
-        this.retryHandler = new RetryHandler();
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(30))
-                .build();
+        this(EssabuConfig.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .tenantId(tenantId)
+                .build());
+    }
+
+    /**
+     * Returns the underlying {@link HttpClient} so it can be closed externally.
+     */
+    public HttpClient getHttpClient() {
+        return httpClient;
     }
 
     /**
@@ -84,6 +106,7 @@ public final class HttpClientWrapper {
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + path))
+                    .timeout(readTimeout)
                     .method("GET", HttpRequest.BodyPublishers.noBody());
             auth.apply(builder);
 
@@ -93,7 +116,8 @@ public final class HttpClientWrapper {
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 return response.body();
             }
-            throwApiException(response.statusCode(), new String(response.body()));
+            String requestId = extractRequestId(response);
+            throwApiException(response.statusCode(), new String(response.body()), requestId);
             return null; // unreachable
         } catch (EssabuApiException e) {
             throw e;
@@ -121,6 +145,7 @@ public final class HttpClientWrapper {
 
                 HttpRequest.Builder builder = HttpRequest.newBuilder()
                         .uri(URI.create(baseUrl + path))
+                        .timeout(readTimeout)
                         .method(method, publisher);
 
                 auth.apply(builder);
@@ -134,23 +159,31 @@ public final class HttpClientWrapper {
         if (status >= 200 && status < 300) {
             return response;
         }
-        throwApiException(status, response.body());
+        String requestId = extractRequestId(response);
+        throwApiException(status, response.body(), requestId);
         return response; // unreachable
     }
 
-    private void throwApiException(int status, String body) {
+    private void throwApiException(int status, String body, String requestId) {
         switch (status) {
-            case 401 -> throw new UnauthorizedException("Unauthorized", status, body);
-            case 403 -> throw new ForbiddenException("Forbidden", status, body);
-            case 404 -> throw new NotFoundException("Resource not found", status, body);
-            case 422 -> throw new ValidationException("Validation failed", status, body);
-            case 429 -> throw new RateLimitException("Rate limit exceeded", status, body);
+            case 400 -> throw new BadRequestException("Bad request", status, body, requestId);
+            case 401 -> throw new UnauthorizedException("Unauthorized", status, body, requestId);
+            case 403 -> throw new ForbiddenException("Forbidden", status, body, requestId);
+            case 404 -> throw new NotFoundException("Resource not found", status, body, requestId);
+            case 409 -> throw new ConflictException("Conflict", status, body, requestId);
+            case 422 -> throw new ValidationException("Validation failed", status, body, requestId);
+            case 429 -> throw new RateLimitException("Rate limit exceeded", status, body, requestId);
             default -> {
                 if (status >= 500) {
-                    throw new ServerException("Server error", status, body);
+                    throw new ServerException("Server error", status, body, requestId);
                 }
-                throw new EssabuApiException("API error (HTTP " + status + ")", status, body);
+                throw new EssabuApiException("API error (HTTP " + status + ")", status, body, requestId);
             }
         }
+    }
+
+    private static String extractRequestId(HttpResponse<?> response) {
+        Optional<String> header = response.headers().firstValue(REQUEST_ID_HEADER);
+        return header.orElse(null);
     }
 }

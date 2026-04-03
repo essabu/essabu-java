@@ -6,9 +6,10 @@ import com.essabu.common.model.PageRequest;
 import com.essabu.common.model.PageResponse;
 import com.fasterxml.jackson.databind.JavaType;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Base class for all API resource classes. Provides convenience methods
@@ -35,18 +36,19 @@ public abstract class BaseApi {
     }
 
     /**
-     * Append a single query parameter to a path.
+     * Append a single query parameter to a path, URL-encoding the value.
      */
     protected String withParam(String path, String key, Object value) {
         if (value == null) {
             return path;
         }
         String separator = path.contains("?") ? "&" : "?";
-        return path + separator + key + "=" + value;
+        String encoded = URLEncoder.encode(String.valueOf(value), StandardCharsets.UTF_8);
+        return path + separator + key + "=" + encoded;
     }
 
     /**
-     * Append multiple query parameters to a path.
+     * Append multiple query parameters to a path, URL-encoding each value.
      */
     protected String withParams(String path, Map<String, Object> params) {
         if (params == null || params.isEmpty()) {
@@ -56,7 +58,8 @@ public abstract class BaseApi {
         for (Map.Entry<String, Object> entry : params.entrySet()) {
             if (entry.getValue() != null) {
                 sb.append(sb.toString().contains("?") ? "&" : "?");
-                sb.append(entry.getKey()).append("=").append(entry.getValue());
+                String encoded = URLEncoder.encode(String.valueOf(entry.getValue()), StandardCharsets.UTF_8);
+                sb.append(entry.getKey()).append("=").append(encoded);
             }
         }
         return sb.toString();

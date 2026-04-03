@@ -23,4 +23,11 @@ public class PageResponse<T> {
     private int totalPages;
     private boolean first;
     private boolean last;
+
+    /**
+     * Returns {@code true} if there is a next page available.
+     */
+    public boolean hasNext() {
+        return !this.last;
+    }
 }
