@@ -7,4 +7,8 @@ public class UnauthorizedException extends EssabuApiException {
     public UnauthorizedException(String message, int statusCode, String responseBody) {
         super(message, statusCode, responseBody);
     }
+
+    public UnauthorizedException(String message, int statusCode, String responseBody, String requestId) {
+        super(message, statusCode, responseBody, requestId);
+    }
 }

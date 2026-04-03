@@ -7,4 +7,8 @@ public class RateLimitException extends EssabuApiException {
     public RateLimitException(String message, int statusCode, String responseBody) {
         super(message, statusCode, responseBody);
     }
+
+    public RateLimitException(String message, int statusCode, String responseBody, String requestId) {
+        super(message, statusCode, responseBody, requestId);
+    }
 }

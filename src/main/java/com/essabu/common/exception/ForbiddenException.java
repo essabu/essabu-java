@@ -7,4 +7,8 @@ public class ForbiddenException extends EssabuApiException {
     public ForbiddenException(String message, int statusCode, String responseBody) {
         super(message, statusCode, responseBody);
     }
+
+    public ForbiddenException(String message, int statusCode, String responseBody, String requestId) {
+        super(message, statusCode, responseBody, requestId);
+    }
 }
